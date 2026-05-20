@@ -1,10 +1,10 @@
-# convodynamics
+# candy
 
 A tool designed to extract interpretable macro-level features from conversation, based on the methodology described by [Di Stasi et al. (2023)](https://psycnet.apa.org/record/2024-16512-001).
 
 ## Installation
 
-To install the required dependencies and `convodynamics`, run:
+To install the required dependencies and `candy`, run:
 
 ```bash
 pip install -r requirements.txt
@@ -18,7 +18,7 @@ Write about Huggingface Hub registerations as well
 After installation, you can extract macro features from a conversation file:
 
 ```bash
-python -m convodynamics.macro_metrics --datapath /path/to/conversations
+python -m candy.macro_metrics --datapath /path/to/conversations
 ```
 
 Replace `/path/to/conversations` with your conversation data directory.
@@ -31,11 +31,10 @@ Replace `/path/to/conversations` with your conversation data directory.
 
 ```
 .
-├── convodynamics/           # Main package
+├── candy/           # Main package
 │   ├── __init__.py         # Package initialization
 │   ├── feature.py          # Abstract Feature base class
 │   ├── macro_metrics.py    # Macro-level feature implementations
-│   ├── preprocess.py       # Audio preprocessing and speaker diarization
 │   └── utils.py            # Utility functions (adaptability, predictability)
 ├── tests/                  # Unit tests
 ├── requirements.txt        # Python dependencies

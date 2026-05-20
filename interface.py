@@ -1,28 +1,18 @@
-import os
+import argparse
 from pathlib import Path
-from dotenv import load_dotenv
 
 from convokit import Corpus
-from dataclasses import dataclass
 
-from convodynamics.converters import CandorConverter
-from convodynamics.transformers import (
-    SpeechDiarizationTransformer, 
-    ConversationDynamicsTransformer
-)
+from candy.converters import CandorConverter
+from candy.transformers import ConversationDynamicsTransformer
 
-@dataclass
-class Args:
-    datapath: str
-    transcript_type: str = None
 if __name__ == "__main__":
 
-
-    # all constants -- TBD later
-    args = Args(
-        datapath="data/conversations",
-        transcript_type="audiophile"
-    )
+    parser = argparse.ArgumentParser(description="Process Candor dataset for conversation dynamics analysis.")
+    parser.add_argument("--datapath", type=str, required=True, help="Path to the Candor dataset.")
+    parser.add_argument("--transcript_type", type=str, default="audiophile", help="Type of transcript to use (default: audiophile).")
+    parser.add_argument("--output_path", type=str, default="results", help="Path to save the transformed corpus.")
+    args = parser.parse_args()
 
     # convert the Candor dataset to ConvoKit format
     converter = CandorConverter(
@@ -37,14 +27,6 @@ if __name__ == "__main__":
     corpus = Corpus(filename=Path(args.datapath) / folder_name)
     print(folder_name)
 
-    # diarize audio if available
-    load_dotenv()
-    diarizer = SpeechDiarizationTransformer(
-        huggingface_token=os.getenv("HUGGINGFACE_TOKEN"),
-        diarization_model="pyannote/speaker-diarization-3.1"
-    )
-    corpus = diarizer.transform(corpus)
-
     # extract conversation dynamics features from Di Stasi et al (2024)
     dynamics_extractor = ConversationDynamicsTransformer()
     dynamics_extractor.register_metrics([
@@ -57,5 +39,7 @@ if __name__ == "__main__":
     ])
     corpus = dynamics_extractor.transform(corpus)
 
-    # random conversation to check features
-    print(corpus.random_conversation().retrieve_meta("conversation_dynamics_features"))
+    # dump the transformed corpus with conversation dynamics features
+    output_path = Path(args.output_path)
+    output_path.mkdir(exist_ok=True)
+    dynamics_extractor.export(corpus, output_path)

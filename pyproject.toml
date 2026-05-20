@@ -1,5 +1,5 @@
 [project]
-name = "candor"
+name = "candy"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -7,9 +7,12 @@ requires-python = ">=3.9"
 dependencies = [
     "convokit>=3.0.1",
     "ipykernel>=6.31.0",
+    "onnxruntime<1.20",
     "pandas>=2.3.3",
     "plotnine>=0.13.6",
-    "pyannote-audio==3.4.0",
     "python-dotenv>=1.1.1",
+    "statsmodels>=0.14.5",
+    "torch>=2.8.0",
     "torchaudio==2.8.0",
+    "whisperx>=3.4.3",
 ]
