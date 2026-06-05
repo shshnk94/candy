@@ -8,7 +8,8 @@ from pathlib import Path
 import torch
 import whisperx
 
-from candy.aggregation import aggregate_audiophile_turns, aggregate_backbiter_turns
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from candy.aggregation import aggregate_audiophile_turns, aggregate_backbiter_turns  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,

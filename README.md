@@ -50,43 +50,73 @@ Optional columns:
 
 ### Installation
 
-To install the required dependencies and `candy`, run:
+This project is managed with [uv](https://docs.astral.sh/uv/). To install `candy` and its dependencies into a virtual environment, run:
 
 ```bash
-pip install -r requirements.txt
-pip install .
+uv sync
 ```
 
-Write about Huggingface Hub registerations as well
+Alternatively, install into an existing environment with pip:
+
+```bash
+pip install -e .
+```
+
+#### Hugging Face Hub
+
+The transcription pipeline (`scripts/transcribe.py`) downloads WhisperX models from the Hugging Face Hub. Create a free account at [huggingface.co](https://huggingface.co), generate an access token, and place it in a `.env` file at the repository root:
+
+```
+HUGGINGFACE_TOKEN="hf_..."
+```
 
 ### Usage
 
-After installation, you can extract macro features from a conversation file:
+Extract conversation-dynamics features from a dataset of conversations:
 
 ```bash
-python -m candy.macro_metrics --datapath /path/to/conversations
+python scripts/interface.py --datapath /path/to/conversations
+```
+
+To (re)generate transcripts from raw audio with WhisperX and forced alignment first:
+
+```bash
+python scripts/transcribe.py --datapath /path/to/conversations
 ```
 
 Replace `/path/to/conversations` with your conversation data directory.
 
 ### Command-line Arguments
 
-- `--datapath`: Path to the folder containing conversation data (required)
+`scripts/interface.py`
+- `--datapath`: Path to the dataset of conversations (required)
+- `--transcript_type`: Type of transcript to use (default: `audiophile`)
+- `--output_path`: Directory to save the transformed corpus (default: `results`)
+
+`scripts/transcribe.py`
+- `--datapath`: Path to the conversations directory (required)
+- `--model`: WhisperX model size (default: `large-v2`)
+- `--language`: Language code for transcription (default: `en`)
+- `--batch_size`: Batch size for transcription (default: `16`)
 
 ### Repository structure
 
 ```
 .
-├── candy/           # Main package
-│   ├── __init__.py         # Package initialization
-│   ├── feature.py          # Abstract Feature base class
-│   ├── macro_metrics.py    # Macro-level feature implementations
-│   └── utils.py            # Utility functions (adaptability, predictability)
-├── tests/                  # Unit tests
-├── requirements.txt        # Python dependencies
-├── setup.py               # Package installation configuration
-├── README.md              # Project documentation
-└── LICENSE                # License file
+├── candy/                  # Main package
+│   ├── __init__.py
+│   ├── aggregation.py      # Aggregate word-level transcripts into turns (audiophile/backbiter)
+│   ├── converters/         # Convert raw datasets (e.g. CANDOR) to ConvoKit corpora
+│   ├── transformers/       # ConvoKit transformers, incl. conversation-dynamics metrics
+│   └── associators/        # Relate metrics to conversation outcomes
+├── scripts/                # Standalone CLI scripts (interface.py, transcribe.py, helpers)
+├── notebooks/              # Exploratory analysis (analysis.ipynb)
+├── data/                   # Input datasets (gitignored)
+├── results/                # Extracted features and outputs
+├── pyproject.toml          # Project metadata and dependencies
+├── uv.lock                 # Pinned dependency lockfile
+├── README.md               # Project documentation
+└── LICENSE                 # License file
 ```
 
 ## Contributing

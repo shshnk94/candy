@@ -1,10 +1,12 @@
 import argparse
+import sys
 from pathlib import Path
 
 from convokit import Corpus
 
-from candy.converters import CandorConverter
-from candy.transformers import ConversationDynamicsTransformer
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from candy.converters import CandorConverter  # noqa: E402
+from candy.transformers import ConversationDynamicsTransformer  # noqa: E402
 
 if __name__ == "__main__":
 
