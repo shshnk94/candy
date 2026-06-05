@@ -1,4 +1,4 @@
-# candy
+# CANDY
 
 A tool designed to extract interpretable macro-level features from conversation, based on the methodology described by [Di Stasi et al. (2023)](https://psycnet.apa.org/record/2024-16512-001).
 
