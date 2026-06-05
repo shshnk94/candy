@@ -1,0 +1,311 @@
+---
+title: "Conversation Dynamics"
+author: "Zhenchao Hu, Shashanka Subrahmanya, Nilam Ram"
+date: "2025-10-01"
+output: 
+  rmdformats::robobook:
+    toc_depth: 3
+    gallery: TRUE
+    lightbox: TRUE
+editor_options: 
+  chunk_output_type: console
+---
+
+```{=html}
+<style type="text/css">
+  body, html{
+    font-family: Helvetica;
+}
+.book .book-body .page-inner section.normal h1{
+  font-family: Source Sans Pro;
+  font-weight: bold;
+  color:#8c1515;
+} 
+.book .book-body .page-inner section.normal h2,
+.book .book-body .page-inner section.normal h3, 
+.book .book-body .page-inner section.normal h4{
+  font-family: Source Sans Pro;
+  font-weight: bold;
+}
+
+.book .book-body .page-inner section.normal table  td,
+.book .book-body .page-inner section.normal pre>code.r,
+.book .book-body .page-inner section.normal pre{
+   font-family: Andale Mono;
+}
+
+</style>
+```
+
+# Set-Up
+
+```{r setup, warning=F, message=F}
+
+#Change this to your working directory
+#setwd("~/Downloads/67836c1d-1334-41a0-a33a-4f788e8b6fb3")
+
+#Load Necessary Libraries
+
+library(psych)           # data descriptives
+library(tidyverse)       # data structures & visualization
+library(lme4)            # let's model
+library(lmerTest)        # let's model some more
+library(knitr)           # tables
+
+```
+
+## Data Import
+
+We demonstrate the use of our tool here for a single conversation from an open dataset, CANDOR (Reece et al., 2023) with future versions including batch processing of multiple conversations.
+
+```{r data import, warning=F, message=F}
+
+#transcript
+audiofile <- read.csv("transcription/transcript_audiophile.csv", header = TRUE)
+
+```
+
+## Di Stasi and colleagues (2024)
+
+Di Stasi, M., Templeton, E., & Quoidbach, J. (2024). Zooming out on bargaining tables: Exploring which conversation dynamics predict negotiation outcomes. Journal of Applied Psychology, 109(7), 1077–1093. https://doi.org/10.1037/apl0001136  
+
+For each of the 7 dimensions. We followed Di Stasi and colleagues (2024) and provided percentage over the whole conversation a summary measure (i.e., speaking time, pauses, interruptions, and backchannel), or central tendency, coefficient of variation, adaptability, and predictability for turn-taking related conversation dynamics (i.e., turn length, speech rate, and response time).  
+
+Central tendency is measured with median, the midpoint of the distribution of the metric. Coefficient of variation represents the ratio of standard deviation and mean/average. It is used to represent the variability in turn length via avoiding the confounding effect of the mean (see Mestdagh et al., 2018). Adaptability is a measure of how one participant is adapting to their interaction partner (i.e., correlation of lag-1 turns between the two speakers). For example, this can be essential in examining theories of accommodation. Predictability measures how one participant is being consistent to their own patterns (i.e., correlation of lag-1 turns for the same speaker). This is important for identifying potential speech patterns.  
+
+In the following section, we provide the code for calculating those metrics whenver possible.
+
+### Speaking time
+
+Speaking time is defined as the percentage of a participant’s speaking time relative to time of the entire conversation.
+
+```{r, warning=FALSE}
+
+audiofile %>%
+  mutate(duration = stop - start) %>%
+  group_by(speaker) %>%
+  summarise(total_duration = sum(duration, na.rm = TRUE)) %>%
+  mutate(ratio = total_duration / sum(total_duration)) %>%
+  kable()
+
+```
+
+### Turn length 
+
+Turn length is defined as the duration of a participant’s speech turns. Here we present four metrics: median as the midpoint for measuring central tendency, coefficient of variation, adaptability, and predictability.  
+```{r}
+
+audiofile <- audiofile %>%
+  arrange(start) %>%
+  mutate(duration = stop - start,
+         prev_speaker  = lag(speaker),
+         prev_duration = lag(duration))
+
+# Median 
+med_tbl <- audiofile %>%
+  group_by(speaker) %>%
+  summarise(median_duration = median(duration, na.rm = TRUE), .groups = "drop")
+
+# Coefficient of variation (per speaker)
+cv_tbl <- audiofile %>%
+  group_by(speaker) %>%
+  summarise(
+    mean_duration = mean(duration, na.rm = TRUE),
+    sd_duration   = sd(duration, na.rm = TRUE),
+    cv_percent    = sd_duration / mean_duration,
+    .groups = "drop"
+  )
+
+# Adaptability: cor( duration_t , partner_duration_{t-1} )
+adapt_tbl <- audiofile %>%
+  group_by(speaker) %>%
+  summarise(
+    adaptability = cor(duration, prev_duration,
+                       method = "spearman", use = "complete.obs"),
+    .groups = "drop"
+  )
+
+# Predictability: cor( duration_t , own_duration_{t-1} )
+pred_tbl <- audiofile %>%
+  group_by(speaker) %>%
+  arrange(start, .by_group = TRUE) %>%
+  mutate(prev_own = lag(duration)) %>%
+  summarise(
+    predictability = cor(duration, prev_own,
+                         method = "spearman", use = "complete.obs"),
+    .groups = "drop"
+  )
+
+# summary table
+med_tbl %>%
+  left_join(cv_tbl %>% select(speaker, cv_percent), by = "speaker") %>%
+  left_join(adapt_tbl, by = "speaker") %>%
+  left_join(pred_tbl, by = "speaker") %>%
+  kable()
+
+
+```
+
+### Pauses
+
+Pauses are not practical with only turn-level transcript data. Please refer to the speech/audio analysis for calculating pauses from conversations.
+
+### Speech rate 
+
+Speech rate is calculated as the the number of words per minute for each speaker. When analyzing audio data, another possibility is to exclude the within-turn pauses for calculating speech rates. One could also customize the code to calculate other speech rate metrics including phonemes per second.
+
+```{r}
+
+# Compute duration (in minutes) and speech rate (words per minute)
+audiofile <- audiofile %>%
+  arrange(start) %>%
+  mutate(duration_min = (stop - start) / 60,
+         wpm = n_words / duration_min)
+
+# Median speech rate per speaker
+median_tbl <- audiofile %>%
+  group_by(speaker) %>%
+  summarise(median_wpm = median(wpm, na.rm = TRUE), .groups = "drop")
+
+# Coefficient of variation of speech rate (SD / mean)
+cv_tbl <- audiofile %>%
+  group_by(speaker) %>%
+  summarise(
+    mean_wpm = mean(wpm, na.rm = TRUE),
+    sd_wpm   = sd(wpm, na.rm = TRUE),
+    cv_wpm   = sd_wpm / mean_wpm,
+    .groups = "drop"
+  )
+
+# Prepare lag info
+audio_lag <- audiofile %>%
+  mutate(prev_speaker = lag(speaker),
+         prev_wpm     = lag(wpm))
+
+# Adaptability: correlation with counterpart's previous speech rate
+adapt_tbl <- audio_lag %>%
+  filter(prev_speaker != speaker) %>%
+  group_by(speaker) %>%
+  summarise(
+    adaptability = cor(wpm, prev_wpm,
+                       method = "spearman", use = "complete.obs"),
+    .groups = "drop"
+  )
+
+# Predictability: correlation with own previous speech rate
+pred_tbl <- audiofile %>%
+  group_by(speaker) %>%
+  arrange(start, .by_group = TRUE) %>%
+  mutate(prev_own_wpm = lag(wpm)) %>%
+  summarise(
+    predictability = cor(wpm, prev_own_wpm,
+                         method = "spearman", use = "complete.obs"),
+    .groups = "drop"
+  )
+
+# summary table
+speech_metrics <- median_tbl %>%
+  left_join(cv_tbl %>% select(speaker, cv_wpm), by = "speaker") %>%
+  left_join(adapt_tbl, by = "speaker") %>%
+  left_join(pred_tbl, by = "speaker")
+
+speech_metrics %>% kable()
+
+```
+
+### Backchannels
+
+Backchannel refers to the instances of sub-1-s utterances during the interaction partner’s turn. It is realized by creating/using the "overlapping" feature calculated from the start and end time of each turn. If not already available in the dataset. One should create a binary variable "overlap" by checking whether a turn's start and end time are included in the last turn's start and end time. 
+
+```{r}
+
+audiofile <- audiofile %>%
+  mutate(backchannel = if_else(overlap == "True" & duration < 1, 1, 0))
+
+audiofile %>%
+  group_by(speaker) %>%
+  summarise(mean_backchannel = mean(backchannel)) %>% kable()
+
+```
+
+### Response time
+
+Response time refers to the duration of silence between the end of the one person’s turn and the first voiced utterance from their interaction partner.
+
+```{r}
+
+# compute response time
+audiofile <- audiofile %>%
+  arrange(start) %>%
+  mutate(
+    prev_speaker = lag(speaker),
+    prev_stop    = lag(stop),
+    response_time = if_else(
+      overlap == "False" & prev_speaker != speaker,
+      start - prev_stop,   # silence between turns
+      NA_real_             # not a valid response time
+    )
+  )
+
+# Median response time per speaker
+median_tbl <- audiofile %>%
+  group_by(speaker) %>%
+  summarise(median_rt = median(response_time, na.rm = TRUE), .groups = "drop")
+
+# Coefficient of Variation (SD / mean)
+cv_tbl <- audiofile %>%
+  group_by(speaker) %>%
+  summarise(
+    mean_rt = mean(response_time, na.rm = TRUE),
+    sd_rt   = sd(response_time, na.rm = TRUE),
+    cv_rt   = sd_rt / mean_rt,
+    .groups = "drop"
+  )
+
+# Adaptability: correlation between this speaker’s RT at time t and the counterpart’s RT at time t - 1
+adapt_tbl <- audiofile %>%
+  mutate(prev_rt = lag(response_time),
+         prev_speaker = lag(speaker)) %>%
+  filter(prev_speaker != speaker) %>%
+  group_by(speaker) %>%
+  summarise(
+    adaptability = cor(response_time, prev_rt,
+                       method = "spearman", use = "complete.obs"),
+    .groups = "drop"
+  )
+
+# Predictability: correlation between this speaker’s RT and their own RT at t - 1
+pred_tbl <- audiofile %>%
+  group_by(speaker) %>%
+  arrange(start, .by_group = TRUE) %>%
+  mutate(prev_own_rt = lag(response_time)) %>%
+  summarise(
+    predictability = cor(response_time, prev_own_rt,
+                         method = "spearman", use = "complete.obs"),
+    .groups = "drop"
+  )
+
+# summary table
+response_metrics <- median_tbl %>%
+  left_join(cv_tbl %>% select(speaker, cv_rt), by = "speaker") %>%
+  left_join(adapt_tbl, by = "speaker") %>%
+  left_join(pred_tbl, by = "speaker")
+
+response_metrics %>% kable()
+
+```
+
+## batch-processing
+
+```{r}
+
+
+```
+
+## References
+
+Di Stasi, M., Templeton, E., & Quoidbach, J. (2024). Zooming out on bargaining tables: Exploring which conversation dynamics predict negotiation outcomes. Journal of Applied Psychology, 109(7), 1077–1093. https://doi.org/10.1037/apl0001136
+
+Reece, A., Cooney, G., Bull, P., Chung, C., Dawson, B., Fitzpatrick, C., Glazer, T., Knox, D., Liebscher, A., and & Marin, S. (2023). The CANDOR corpus: Insights from a large multimodal dataset of naturalistic conversation. Science Advances, 9(13), eadf3197. https://doi.org/10.1126/sciadv.adf3197
+
+Mestdagh, M., Pe, M., Pestman, W., Verdonck, S., Kuppens, P., & Tuerlinckx, F. (2018). Sidelining the mean: The relative variability index as a generic mean-corrected variability measure for bounded variables. Psychological Methods, 23(4), 690–707. https://doi.org/10.1037/met0000153
