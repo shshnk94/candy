@@ -19,10 +19,10 @@ For speaking time, pause, and backchannels, we calculate the central tendency fo
 
 ### Components
 
-- .R file for packaged functions, ready to use with instructions and assumptions below.  
-- .Rmd notebook file (.html version as well) detailing the calculation of each metric for references and customization.
-- .Rmd file demonstrating the use of the tool by analyzing Conversation: A Naturalistic Dataset of Online Recordings (CANDOR).
- 
+- CANDY_function.R are the packaged functions, ready to use with instructions and assumptions below.  
+- CANDY_tutorials.Rmd & CANDY_tutorials.html are notebook files detailing the calculation of each metric for references and customization.
+- CANDY_batch_process.R is a demonstration of using CANDY_function.R to calculate all conversation dynamics metrics of over 1,600 conversations from Conversation: A Naturalistic Dataset of Online Recordings (CANDOR).
+- CANDY_CANDOR_demo.Rmd is the demontration file for analyzing how various conversation dynamics metrics are related to individual differences in the Big Five personality traits and pre-to-post-conversation changes in affect valence and arousal using CANDOR.
 
 ### Assumptions
 
